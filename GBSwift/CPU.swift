@@ -80,8 +80,8 @@ struct CPU {
     var clock: UInt32 = 0
     
     mutating func exec() {
-        registers.pc.incr()
         let opCode = mmu.readByte(address: registers.pc)
+        registers.pc.incr()
         let op = CPU.operations[Int(opCode)]
         op.instruction(cpu: &self)
     }
@@ -99,7 +99,8 @@ struct CPU {
             
             //0x0n
             Operation(name: "NOP") { $0.nop() },
-            Operation(name: "LD B,n") { $0.load(toReg: &$0.registers.b) }
+            Operation(name: "LD B,n") { $0.load(toReg: &$0.registers.b) },
+            Operation(name: "LD B,(HL)") { $0.load(toReg: &$0.registers.b, fromAddr: $0.registers.hl) }
         ]
         return ops
     }()
@@ -140,8 +141,8 @@ extension CPU {
     }
     
     //LD r,(rr)
-    private mutating func load(toReg: inout UInt8, addr: UInt16) {
-        toReg = mmu.readByte(address: addr)
+    private mutating func load(toReg: inout UInt8, fromAddr: UInt16) {
+        toReg = mmu.readByte(address: fromAddr)
         clock += 2
     }
 }
