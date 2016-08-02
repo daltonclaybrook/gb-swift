@@ -15,6 +15,13 @@ struct Flags: OptionSet {
     static let zero = Flags(rawValue: 1 << 7)
 }
 
+extension UInt16 {
+    mutating func incr(by: UInt16 = 1) {
+        // convert to 32 bit, add 1, then mask to 16 bit
+        self = UInt16((UInt32(self) + UInt32(by)) & 0xFFFF)
+    }
+}
+
 struct Registers {
     var a: UInt8 = 0
     var b: UInt8 = 0
@@ -28,18 +35,80 @@ struct Registers {
     var pc: UInt16 = 0 // program counter
 }
 
-struct Clock {
-    var m: UInt32 = 0
-    var t: UInt32 = 0
+struct Operation {
+    let name: String
+    let instruction: (cpu: inout CPU) -> ()
 }
 
 struct CPU {
     
     var registers = Registers()
-    var clock = Clock()
+    var mmu = MMU()
+    var clock: UInt32 = 0
+    
+    mutating func exec() {
+        registers.pc.incr()
+        let opCode = mmu.readByte(address: registers.pc)
+        let op = CPU.operations[Int(opCode)]
+        op.instruction(cpu: &self)
+    }
     
     mutating func reset() {
         registers = Registers()
-        clock = Clock()
+        clock = 0
+    }
+    
+    // MARK: Static
+    
+    static let operations: [Operation] = {
+        let ops: [Operation] = [
+            //TODO: add correct operations
+            
+            //0x0n
+            Operation(name: "NOP") { $0.nop() },
+            Operation(name: "LD B,n") { $0.load(toReg: &$0.registers.b) }
+        ]
+        return ops
+    }()
+    
+}
+
+//MARK: Instructions
+
+extension CPU {
+
+    //MARK: NOP
+    
+    private mutating func nop() {
+        clock += 1
+    }
+    
+    //MARK: 8-bit loads
+    
+    //LD r,n
+    private mutating func load(toReg: inout UInt8) {
+        toReg = mmu.readByte(address: registers.pc)
+        registers.pc += 1
+        clock += 2
+    }
+    
+    //LD r,(nn)
+    private mutating func loadAddr(toReg: inout UInt8) {
+        let addr = mmu.readWord(address: registers.pc)
+        toReg = mmu.readByte(address: addr)
+        registers.pc.incr(by: 2)
+        clock += 4
+    }
+    
+    //LD r1,r2
+    private mutating func load(toReg: inout UInt8, fromReg: UInt8) {
+        toReg = fromReg
+        clock += 1
+    }
+    
+    //LD r,(rr)
+    private mutating func load(toReg: inout UInt8, addr: UInt16) {
+        toReg = mmu.readByte(address: addr)
+        clock += 2
     }
 }
