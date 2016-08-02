@@ -35,6 +35,39 @@ struct Registers {
     var pc: UInt16 = 0 // program counter
 }
 
+extension Registers {
+    var af: UInt16 {
+        get { return (UInt16(a) << 8) | UInt16(flags.rawValue) }
+        set {
+            a = UInt8(newValue >> 8)
+            flags = Flags(rawValue: UInt8(newValue & 0xFF))
+        }
+    }
+    
+    var bc: UInt16 {
+        get { return (UInt16(b) << 8) | UInt16(c) }
+        set {
+            b = UInt8(newValue >> 8)
+            c = UInt8(newValue & 0xFF)
+        }
+    }
+    
+    var de: UInt16 {
+        get { return (UInt16(d) << 8) | UInt16(e) }
+        set {
+            d = UInt8(newValue >> 8)
+            e = UInt8(newValue & 0xFF)
+        }
+    }
+    var hl: UInt16 {
+        get { return (UInt16(h) << 8) | UInt16(l) }
+        set {
+            h = UInt8(newValue >> 8)
+            l = UInt8(newValue & 0xFF)
+        }
+    }
+}
+
 struct Operation {
     let name: String
     let instruction: (cpu: inout CPU) -> ()
