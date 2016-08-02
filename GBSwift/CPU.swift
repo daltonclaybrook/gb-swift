@@ -82,6 +82,7 @@ struct CPU {
     mutating func exec() {
         let opCode = mmu.readByte(address: registers.pc)
         registers.pc.incr()
+        
         let op = CPU.operations[Int(opCode)]
         op.instruction(cpu: &self)
     }
@@ -99,7 +100,7 @@ struct CPU {
             
             //0x0n
             Operation(name: "NOP") { $0.nop() },
-            Operation(name: "LD B,n") { $0.load(toReg: &$0.registers.b) },
+            Operation(name: "LD B,n") { $0.loadPC(toReg: &$0.registers.b) },
             Operation(name: "LD B,(HL)") { $0.load(toReg: &$0.registers.b, fromAddr: $0.registers.hl) }
         ]
         return ops
@@ -119,15 +120,15 @@ extension CPU {
     
     //MARK: 8-bit loads
     
-    //LD r,n
-    private mutating func load(toReg: inout UInt8) {
+    //LD r1,n
+    private mutating func loadPC(toReg: inout UInt8) {
         toReg = mmu.readByte(address: registers.pc)
         registers.pc += 1
         clock += 2
     }
     
     //LD r,(nn)
-    private mutating func loadAddr(toReg: inout UInt8) {
+    private mutating func loadPCAddr(toReg: inout UInt8) {
         let addr = mmu.readWord(address: registers.pc)
         toReg = mmu.readByte(address: addr)
         registers.pc.incr(by: 2)
@@ -143,6 +144,12 @@ extension CPU {
     //LD r,(rr)
     private mutating func load(toReg: inout UInt8, fromAddr: UInt16) {
         toReg = mmu.readByte(address: fromAddr)
+        clock += 2
+    }
+    
+    //LD (rr),r
+    private mutating func loadTo(addr: UInt16, fromReg: UInt8) {
+        mmu.write(byte: fromReg, to: addr)
         clock += 2
     }
 }
