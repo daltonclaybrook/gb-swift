@@ -238,4 +238,83 @@ extension CPU {
         registers.pc.incr()
         clock += 5
     }
+    
+    //MARK: Push / Pop
+    
+    //PUSH rr
+    private mutating func push(fromReg: UInt16) {
+        registers.sp -= 2
+        mmu.write(word: fromReg, to: registers.sp)
+        clock += 2
+    }
+    
+    //POP rr
+    private mutating func pop(toReg: inout UInt16) {
+        toReg = mmu.readWord(address: registers.sp)
+        registers.sp += 2
+        clock += 3
+    }
+    
+    //MARK: 8-bit Arithmetic
+    
+    //ADD r,r
+    private mutating func add(fromReg: UInt8, toReg: inout UInt8) {
+        let to16 = UInt16(toReg)
+        let from16 = UInt16(fromReg)
+        let result = to16 + from16
+        
+        registers.flags = []
+        if (to16 ^ from16 ^ result) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if (to16 ^ from16 ^ result) & 0x100 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        }
+        if result == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        toReg = UInt8(truncatingBitPattern: result)
+        clock += 1
+    }
+    
+    //ADD r,(rr)
+    private mutating func add(fromAddr: UInt16, toReg: inout UInt8) {
+        let val = mmu.readByte(address: fromAddr)
+        add(fromReg: val, toReg: &toReg)
+        clock += 1
+    }
+    
+    //ADD r,n
+    private mutating func addPC(toReg: inout UInt8) {
+        let val = mmu.readByte(address: registers.pc)
+        add(fromReg: val, toReg: &toReg)
+        registers.pc.incr()
+        clock += 1
+    }
+    
+    //ADC r,r
+    private mutating func addCarry(fromReg: UInt8, toReg: inout UInt8) {
+        let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
+        add(fromReg: fromReg + mod, toReg: &toReg)
+    }
+    
+    //ADC r,(rr)
+    private mutating func addCarry(fromAddr: UInt16, toReg: inout UInt8) {
+        let val = mmu.readByte(address: fromAddr)
+        let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
+        add(fromReg: val + mod, toReg: &toReg)
+        clock += 1
+    }
+    
+    //ADC r,n
+    private mutating func addCarryPC(toReg: inout UInt8) {
+        let val = mmu.readByte(address: registers.pc)
+        let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
+        add(fromReg: val + mod, toReg: &toReg)
+        registers.pc.incr()
+        clock += 1
+    }
+    
+    
 }
