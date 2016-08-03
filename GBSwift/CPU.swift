@@ -148,8 +148,54 @@ extension CPU {
     }
     
     //LD (rr),r
-    private mutating func loadTo(addr: UInt16, fromReg: UInt8) {
+    private mutating func load(toAddr: UInt16, fromReg: UInt8) {
+        mmu.write(byte: fromReg, to: toAddr)
+        clock += 2
+    }
+    
+    //LD r,(C)
+    private mutating func loadCAddr(toReg: inout UInt8) {
+        let addr = UInt16(0xFF00 | UInt16(registers.c))
+        toReg = mmu.readByte(address: addr)
+        clock += 2
+    }
+    
+    //LD (C),r
+    private mutating func loadToCAddr(fromReg: UInt8) {
+        let addr = UInt16(0xFF00 | UInt16(registers.c))
         mmu.write(byte: fromReg, to: addr)
         clock += 2
     }
+    
+    //LDD (rr),r
+    private mutating func loadAndDecr(toRegAddr: inout UInt16, fromReg: UInt8) {
+        mmu.write(byte: fromReg, to: toRegAddr)
+        toRegAddr -= 1
+        clock += 2
+    }
+    
+    //LDI r,(rr)
+    private mutating func loadAndIncr(fromRegAddr: inout UInt16, toReg: inout UInt8) {
+        toReg = mmu.readByte(address: fromRegAddr)
+        fromRegAddr += 1
+        clock += 2
+    }
+    
+    //LDI (rr),r
+    private mutating func loadAndIncr(toRegAddr: inout UInt16, fromReg: UInt8) {
+        mmu.write(byte: fromReg, to: toRegAddr)
+        toRegAddr += 1
+        clock += 2
+    }
+    
+    //LDH (n),r
+    private mutating func loadPCAddrNibble(fromReg: inout UInt8) {
+        let nibble = mmu.readByte(address: registers.pc)
+        let addr = 0xFF00 | UInt16(nibble)
+        mmu.write(byte: fromReg, to: addr)
+        clock += 3
+    }
+    
+    //MARK: 16-bit loads
+    
 }
