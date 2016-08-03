@@ -123,7 +123,7 @@ extension CPU {
     //LD r1,n
     private mutating func loadPC(toReg: inout UInt8) {
         toReg = mmu.readByte(address: registers.pc)
-        registers.pc += 1
+        registers.pc.incr()
         clock += 2
     }
     
@@ -131,7 +131,7 @@ extension CPU {
     private mutating func loadPCAddr(toReg: inout UInt8) {
         let addr = mmu.readWord(address: registers.pc)
         toReg = mmu.readByte(address: addr)
-        registers.pc.incr(by: 2)
+        registers.pc.incr()
         clock += 4
     }
     
@@ -193,9 +193,49 @@ extension CPU {
         let nibble = mmu.readByte(address: registers.pc)
         let addr = 0xFF00 | UInt16(nibble)
         mmu.write(byte: fromReg, to: addr)
+        registers.pc.incr()
         clock += 3
     }
     
     //MARK: 16-bit loads
     
+    //LD rr,(nn)
+    private mutating func loadPC(toReg: inout UInt16) {
+        toReg = mmu.readWord(address: registers.pc)
+        registers.pc.incr()
+        clock += 3
+    }
+    
+    //LD SP,(rr)
+    private mutating func loadToSP(fromReg: UInt16) {
+        registers.sp = fromReg
+        clock += 2
+    }
+    
+    //LD rr,(SP+n)
+    private mutating func loadSPN(toReg: inout UInt16) {
+        let n = Int32(Int8(bitPattern: mmu.readByte(address: registers.pc)))
+        let sp = Int32(registers.sp)
+        let result = sp + n
+        toReg = UInt16(truncatingBitPattern: result)
+        
+        registers.flags = []
+        if (sp ^ n ^ result) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if (sp ^ n ^ result) & 0x100 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        }
+        
+        registers.pc.incr()
+        clock += 3
+    }
+    
+    //LD (nn),rr
+    private mutating func loadPCAddr(fromReg: UInt16) {
+        let addr = mmu.readWord(address: registers.pc)
+        mmu.write(word: fromReg, to: addr)
+        registers.pc.incr()
+        clock += 5
+    }
 }
