@@ -287,10 +287,8 @@ extension CPU {
     
     //ADD r,n
     private mutating func addPC(toReg: inout UInt8) {
-        let val = mmu.readByte(address: registers.pc)
-        add(fromReg: val, toReg: &toReg)
+        add(fromAddr: registers.pc, toReg: &toReg)
         registers.pc.incr()
-        clock += 1
     }
     
     //ADC r,r
@@ -309,11 +307,8 @@ extension CPU {
     
     //ADC r,n
     private mutating func addCarryPC(toReg: inout UInt8) {
-        let val = mmu.readByte(address: registers.pc)
-        let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
-        add(fromReg: val + mod, toReg: &toReg)
+        addCarry(fromAddr: registers.pc, toReg: &toReg)
         registers.pc.incr()
-        clock += 1
     }
     
     //SUB r
@@ -346,10 +341,8 @@ extension CPU {
     
     //SUB n
     private mutating func subPC() {
-        let val = mmu.readByte(address: registers.pc)
-        sub(fromReg: val)
+        sub(fromAddr: registers.pc)
         registers.pc.incr()
-        clock += 1
     }
     
     //SBC r
@@ -361,8 +354,29 @@ extension CPU {
     //SBC (rr)
     private mutating func subCarry(fromAddr: UInt16) {
         let val = mmu.readByte(address: fromAddr)
-        let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
-        sub(fromReg: val + mod)
+        subCarry(fromReg: val)
         clock += 1
+    }
+    
+    //MARK: Bitwise
+    
+    //AND r
+    private mutating func and(fromReg: UInt8) {
+        registers.a &= fromReg
+        registers.flags = registers.a == 0 ? [.halfCarry, .zero] : .halfCarry
+        clock += 1
+    }
+    
+    //AND (rr)
+    private mutating func and(fromAddr: UInt16) {
+        let val = mmu.readByte(address: fromAddr)
+        and(fromReg: val)
+        clock += 1
+    }
+    
+    //AND n
+    private mutating func andPC() {
+        and(fromAddr: registers.pc)
+        registers.pc.incr()
     }
 }
