@@ -258,7 +258,7 @@ extension CPU {
     //MARK: 8-bit Arithmetic
     
     //ADD r,r
-    private mutating func add(fromReg: UInt8, toReg: inout UInt8) {
+    private mutating func add(toReg: inout UInt8, fromReg: UInt8) {
         let to16 = UInt16(toReg)
         let from16 = UInt16(fromReg)
         let result = to16 + from16
@@ -418,5 +418,139 @@ extension CPU {
     private mutating func xorPC() {
         xor(fromAddr: registers.pc)
         registers.pc.incr()
+    }
+    
+    //CP r
+    private mutating func cp(withReg: UInt8) {
+        let a16 = UInt16(registers.a)
+        let r16 = UInt16(withReg)
+        let result = a16 &- r16
+        
+        registers.flags = .subtract
+        if (a16 ^ r16 ^ result) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if (a16 ^ r16 ^ result) & 0x100 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        }
+        if result == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        clock += 1
+    }
+    
+    //INC r
+    private mutating func inc(reg: inout UInt8) {
+        let old = reg
+        reg = old &+ 1
+        registers.flags.formIntersection(.fullCarry)
+        if (old ^ 1 ^ reg) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        clock += 1
+    }
+    
+    //INC (rr)
+    private mutating func inc(withAddr: UInt16) {
+        let val = mmu.readByte(address: withAddr)
+        let result = val &+ 1
+        registers.flags.formIntersection(.fullCarry)
+        if (val ^ 1 ^ result) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if result == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        mmu.write(byte: result, to: withAddr)
+        clock += 3
+    }
+    
+    //DEC r
+    private mutating func dec(reg: inout UInt8) {
+        let old = reg
+        reg = old &- 1
+        registers.flags.formIntersection(.fullCarry)
+        registers.flags.formUnion(.subtract)
+        if (old ^ 1 ^ reg) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        clock += 1
+    }
+    
+    //DEC (rr)
+    private mutating func dec(withAddr: UInt16) {
+        let val = mmu.readByte(address: withAddr)
+        let result = val &- 1
+        registers.flags.formIntersection(.fullCarry)
+        registers.flags.formUnion(.subtract)
+        if (val ^ 1 ^ result) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if result == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        mmu.write(byte: result, to: withAddr)
+        clock += 3
+    }
+    
+    //MARK: 16-bit Arithmetic
+    
+    //ADD rr,rr
+    private mutating func add(toReg: inout UInt16, fromReg: UInt16) {
+        let to32 = UInt32(toReg)
+        let from32 = UInt32(fromReg)
+        let result = to32 &+ from32
+        
+        registers.flags = []
+        if (to32 ^ from32 ^ result) & 0x1000 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if (to32 ^ from32 ^ result) & 0x10000 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        }
+        if result == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        toReg = UInt16(truncatingBitPattern: result)
+        clock += 2
+    }
+    
+    //ADD SP,n
+    private mutating func addPC(toReg: inout UInt16) {
+        let old = UInt32(toReg)
+        let val = UInt32(mmu.readByte(address: registers.pc))
+        let result = old &+ val
+        
+        registers.flags = []
+        if (old ^ val ^ result) & 0x1000 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if (old ^ val ^ result) & 0x10000 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        }
+        
+        toReg = UInt16(truncatingBitPattern: result)
+        registers.pc.incr()
+        clock += 4
+    }
+    
+    //INC rr
+    private mutating func inc(reg: inout UInt16) {
+        reg = reg &+ 1
+        clock += 2
+    }
+    
+    //DEC rr
+    private mutating func dec(reg: inout UInt16) {
+        reg = reg &- 1
+        clock += 2
     }
 }
