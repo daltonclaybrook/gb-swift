@@ -316,5 +316,53 @@ extension CPU {
         clock += 1
     }
     
+    //SUB r
+    private mutating func sub(fromReg: UInt8) {
+        let a16 = UInt16(registers.a)
+        let r16 = UInt16(fromReg)
+        let result = a16 &- r16
+        
+        registers.flags = .subtract
+        if (a16 ^ r16 ^ result) & 0x10 != 0 {
+            registers.flags.formUnion(.halfCarry)
+        }
+        if (a16 ^ r16 ^ result) & 0x100 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        }
+        if result == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        registers.a = UInt8(truncatingBitPattern: result)
+        clock += 1
+    }
     
+    //SUB (rr)
+    private mutating func sub(fromAddr: UInt16) {
+        let val = mmu.readByte(address: fromAddr)
+        sub(fromReg: val)
+        clock += 1
+    }
+    
+    //SUB n
+    private mutating func subPC() {
+        let val = mmu.readByte(address: registers.pc)
+        sub(fromReg: val)
+        registers.pc.incr()
+        clock += 1
+    }
+    
+    //SBC r
+    private mutating func subCarry(fromReg: UInt8) {
+        let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
+        sub(fromReg: fromReg + mod)
+    }
+    
+    //SBC (rr)
+    private mutating func subCarry(fromAddr: UInt16) {
+        let val = mmu.readByte(address: fromAddr)
+        let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
+        sub(fromReg: val + mod)
+        clock += 1
+    }
 }
