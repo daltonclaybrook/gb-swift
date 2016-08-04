@@ -399,4 +399,24 @@ extension CPU {
         or(fromAddr: registers.pc)
         registers.pc.incr()
     }
+    
+    //XOR r
+    private mutating func xor(fromReg: UInt8) {
+        registers.a ^= fromReg
+        registers.flags = registers.a == 0 ? .zero : []
+        clock += 1
+    }
+    
+    //XOR (rr)
+    private mutating func xor(fromAddr: UInt16) {
+        let val = mmu.readByte(address: fromAddr)
+        xor(fromReg: val)
+        clock += 1
+    }
+    
+    //XOR n
+    private mutating func xorPC() {
+        xor(fromAddr: registers.pc)
+        registers.pc.incr()
+    }
 }
