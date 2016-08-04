@@ -281,7 +281,7 @@ extension CPU {
     //ADD r,(rr)
     private mutating func add(fromAddr: UInt16, toReg: inout UInt8) {
         let val = mmu.readByte(address: fromAddr)
-        add(fromReg: val, toReg: &toReg)
+        add(toReg: &toReg, fromReg: val)
         clock += 1
     }
     
@@ -294,14 +294,14 @@ extension CPU {
     //ADC r,r
     private mutating func addCarry(fromReg: UInt8, toReg: inout UInt8) {
         let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
-        add(fromReg: fromReg + mod, toReg: &toReg)
+        add(toReg: &toReg, fromReg: fromReg + mod)
     }
     
     //ADC r,(rr)
     private mutating func addCarry(fromAddr: UInt16, toReg: inout UInt8) {
         let val = mmu.readByte(address: fromAddr)
         let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
-        add(fromReg: val + mod, toReg: &toReg)
+        add(toReg: &toReg, fromReg: val + mod)
         clock += 1
     }
     
