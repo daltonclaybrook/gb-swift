@@ -640,7 +640,7 @@ extension CPU {
     }
     
     //RLC r
-    private mutating func rlca(reg: inout UInt8) {
+    private mutating func rlc(reg: inout UInt8, clockMod: UInt32) {
         registers.flags = []
         if (reg >> 7) & 1 != 0 {
             registers.flags.formUnion(.fullCarry)
@@ -651,13 +651,65 @@ extension CPU {
         if reg == 0 {
             registers.flags.formUnion(.zero)
         }
-        clock += 1
+        clock += clockMod
     }
     
     //RL r
-    private mutating func rla(reg: inout UInt8) {
+    private mutating func rl(reg: inout UInt8, clockMod: UInt32) {
         let carry = (reg >> 7) & 1
-        rlca(reg: &reg)
+        rlc(reg: &reg, clockMod: clockMod)
         reg += carry
+    }
+    
+    //RLC (rr)
+    private mutating func rlc(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        rlc(reg: &val, clockMod: 4)
+        mmu.write(byte: val, to: addr)
+    }
+    
+    //RL (rr)
+    private mutating func rl(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        rl(reg: &val, clockMod: 4)
+        mmu.write(byte: val, to: addr)
+        
+    }
+    
+    //RRC r
+    private mutating func rrc(reg: inout UInt8, clockMod: UInt32) {
+        registers.flags = []
+        if reg & 1 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        } else {
+            registers.flags.subtract(.fullCarry)
+        }
+        reg = reg >> 1
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        clock += clockMod
+    }
+    
+    //RR r
+    private mutating func rr(reg: inout UInt8, clockMod: UInt32) {
+        let carry = reg << 7
+        rrc(reg: &reg, clockMod: clockMod)
+        reg += carry
+    }
+    
+    //RRC (rr)
+    private mutating func rrc(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        rrc(reg: &val, clockMod: 4)
+        mmu.write(byte: val, to: addr)
+    }
+    
+    //RR (rr)
+    private mutating func rr(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        rr(reg: &val, clockMod: 4)
+        mmu.write(byte: val, to: addr)
+        
     }
 }
