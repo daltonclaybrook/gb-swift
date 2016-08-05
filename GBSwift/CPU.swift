@@ -94,17 +94,14 @@ struct CPU {
     
     // MARK: Static
     
-    static let operations: [Operation] = {
-        let ops: [Operation] = [
-            //TODO: add correct operations
-            
-            //0x0n
-            Operation(name: "NOP") { $0.nop() },
-            Operation(name: "LD B,n") { $0.loadPC(toReg: &$0.registers.b) },
-            Operation(name: "LD B,(HL)") { $0.load(toReg: &$0.registers.b, fromAddr: $0.registers.hl) }
-        ]
-        return ops
-    }()
+    static let operations = [
+        //TODO: add correct operations
+        
+        //0x0n
+        Operation(name: "NOP") { $0.nop() },
+        Operation(name: "LD B,n") { $0.loadPC(toReg: &$0.registers.b) },
+        Operation(name: "LD B,(HL)") { $0.load(toReg: &$0.registers.b, fromAddr: $0.registers.hl) }
+    ]
     
 }
 
@@ -552,5 +549,41 @@ extension CPU {
     private mutating func dec(reg: inout UInt16) {
         reg = reg &- 1
         clock += 2
+    }
+    
+    //DAA
+    private mutating func daa() {
+        var regA = UInt16(registers.a)
+        
+        if !registers.flags.contains(.subtract) {
+            if registers.flags.contains(.halfCarry) || regA & 0x0F > 9 {
+                regA = regA &+ 0x06
+            }
+            if registers.flags.contains(.fullCarry) || regA > 0x9F {
+                regA = regA &+ 0x60
+            }
+        } else {
+            if registers.flags.contains(.halfCarry) {
+                regA = (regA &- 0x06) & 0xFF
+            }
+            if registers.flags.contains(.fullCarry) {
+                regA = regA &- 0x60
+            }
+        }
+        
+        registers.flags.subtract([.halfCarry, .zero])
+        
+        if regA & 0x100 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        }
+        
+        regA &= 0xFF
+        
+        if regA == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        registers.a = UInt8(regA)
+        clock += 1
     }
 }
