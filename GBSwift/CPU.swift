@@ -549,6 +549,24 @@ extension CPU {
         clock += 2
     }
     
+    //MARK: Misc Instructions
+    
+    //SWAP r
+    private mutating func swap(reg: inout UInt8) {
+        reg = (reg >> 4) | (reg << 4)
+        registers.flags = reg == 0 ? .zero : []
+        clock += 2
+    }
+    
+    //SWAP (rr)
+    private mutating func swap(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        val = (val >> 4) | (val << 4)
+        registers.flags = val == 0 ? .zero : []
+        mmu.write(byte: val, to: addr)
+        clock += 4
+    }
+    
     //DAA
     private mutating func daa() {
         var regA = UInt16(registers.a)
@@ -640,25 +658,42 @@ extension CPU {
     }
     
     //RLC r
+    // rotate left, left bit wraps to right
     private mutating func rlc(reg: inout UInt8, clockMod: UInt32) {
         registers.flags = []
-        if (reg >> 7) & 1 != 0 {
+        let carry = (reg >> 7) & 1
+        reg = (reg << 1) | carry
+        
+        if carry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
             registers.flags.subtract(.fullCarry)
         }
-        reg = reg << 1
         if reg == 0 {
             registers.flags.formUnion(.zero)
         }
+        
         clock += clockMod
     }
     
     //RL r
+    // 9-bit rotate left, left bit -> carry -> right bit
     private mutating func rl(reg: inout UInt8, clockMod: UInt32) {
-        let carry = (reg >> 7) & 1
-        rlc(reg: &reg, clockMod: clockMod)
-        reg += carry
+        registers.flags = []
+        let newCarry = (reg >> 7) & 1
+        let oldCarry: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
+        reg = (reg << 1) | oldCarry
+        
+        if newCarry != 0 {
+            registers.flags.formUnion(.fullCarry)
+        } else {
+            registers.flags.subtract(.fullCarry)
+        }
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        clock += clockMod
     }
     
     //RLC (rr)
@@ -679,23 +714,36 @@ extension CPU {
     //RRC r
     private mutating func rrc(reg: inout UInt8, clockMod: UInt32) {
         registers.flags = []
-        if reg & 1 != 0 {
+        let carry = (reg & 1) << 7
+        reg = (reg >> 1) | carry
+        if carry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
             registers.flags.subtract(.fullCarry)
         }
-        reg = reg >> 1
         if reg == 0 {
             registers.flags.formUnion(.zero)
         }
+        
         clock += clockMod
     }
     
     //RR r
     private mutating func rr(reg: inout UInt8, clockMod: UInt32) {
-        let carry = reg << 7
-        rrc(reg: &reg, clockMod: clockMod)
-        reg += carry
+        registers.flags = []
+        let newCarry = (reg & 1) << 7
+        let oldCarry: UInt8 = registers.flags.contains(.fullCarry) ? 0x80 : 0
+        reg = (reg >> 1) | oldCarry
+        if newCarry != 0 {
+            registers.flags.formUnion(.fullCarry)
+        } else {
+            registers.flags.subtract(.fullCarry)
+        }
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        clock += clockMod
     }
     
     //RRC (rr)
@@ -710,6 +758,218 @@ extension CPU {
         var val = mmu.readByte(address: addr)
         rr(reg: &val, clockMod: 4)
         mmu.write(byte: val, to: addr)
+    }
+    
+    //SLA r
+    private mutating func sla(reg: inout UInt8) {
+        registers.flags = []
+        let carry = (reg >> 7) & 1
+        reg = reg << 1
         
+        if carry != 0 {
+            registers.flags.formUnion(.fullCarry)
+        } else {
+            registers.flags.subtract(.fullCarry)
+        }
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        clock += 2
+    }
+    
+    //SLA (rr)
+    private mutating func sla(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        sla(reg: &val)
+        mmu.write(byte: val, to: addr)
+        clock += 2
+    }
+    
+    //SRA r
+    private mutating func sra(reg: inout UInt8) {
+        registers.flags = []
+        let carry = reg & 1
+        let msb = reg & 0x80
+        reg = (reg >> 1) | msb
+        
+        if carry != 0 {
+            registers.flags.formUnion(.fullCarry)
+        } else {
+            registers.flags.subtract(.fullCarry)
+        }
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        clock += 2
+    }
+    
+    //SRA (rr)
+    private mutating func sra(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        sra(reg: &val)
+        mmu.write(byte: val, to: addr)
+        clock += 2
+    }
+    
+    //SRL r
+    private mutating func srl(reg: inout UInt8) {
+        registers.flags = []
+        let carry = reg & 1
+        reg = reg >> 1
+        
+        if carry != 0 {
+            registers.flags.formUnion(.fullCarry)
+        } else {
+            registers.flags.subtract(.fullCarry)
+        }
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        
+        clock += 2
+    }
+    
+    //SRL (rr)
+    private mutating func srl(addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        srl(reg: &val)
+        mmu.write(byte: val, to: addr)
+        clock += 2
+    }
+    
+    //BIT b,r
+    private mutating func bit(bitToCheck: UInt8, reg: UInt8) {
+        if ((reg >> bitToCheck) & 1) == 0 {
+            registers.flags.formUnion(.zero)
+        } else {
+            registers.flags.subtract(.zero)
+        }
+        registers.flags.formUnion(.halfCarry)
+        registers.flags.subtract(.subtract)
+        clock += 2
+    }
+    
+    //BIT b,(rr)
+    private mutating func bit(bitToCheck: UInt8, addr: UInt16) {
+        let val = mmu.readByte(address: addr)
+        bit(bitToCheck: bitToCheck, reg: val)
+        clock += 2
+    }
+    
+    //SET b,r
+    private mutating func set(bitToSet: UInt8, reg: inout UInt8) {
+        reg = reg | (1 << bitToSet)
+        clock += 2
+    }
+    
+    //SET b,(rr)
+    private mutating func set(bitToSet: UInt8, addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        set(bitToSet: bitToSet, reg: &val)
+        mmu.write(byte: val, to: addr)
+        clock += 2
+    }
+    
+    //RES b,r
+    private mutating func res(bitToReset: UInt8, reg: inout UInt8) {
+        reg = reg & ~(1 << bitToReset)
+        clock += 2
+    }
+    
+    //RES b,(rr)
+    private mutating func res(bitToReset: UInt8, addr: UInt16) {
+        var val = mmu.readByte(address: addr)
+        res(bitToReset: bitToReset, reg: &val)
+        mmu.write(byte: val, to: addr)
+        clock += 2
+    }
+    
+    //JP nn
+    private mutating func jp() {
+        registers.pc = mmu.readWord(address: registers.pc)
+        clock += 3
+    }
+    
+    //JP cc,nn
+    private mutating func jp(condition: Bool) {
+        if condition {
+            jp()
+        } else {
+            registers.pc.incr()
+            clock += 3
+        }
+    }
+    
+    //JP (HL)
+    private mutating func jpHL() {
+        registers.pc = registers.hl
+        clock += 1
+    }
+    
+    //JR n
+    private mutating func jr() {
+        let val = Int32(Int8(bitPattern: mmu.readByte(address: registers.pc)))
+        registers.pc = UInt16(truncatingBitPattern: Int32(registers.pc) + Int32(val))
+        clock += 2
+    }
+    
+    //JR cc,n
+    private mutating func jr(condition: Bool) {
+        if condition {
+            jr()
+        } else {
+            registers.pc.incr()
+            clock += 2
+        }
+    }
+    
+    //CALL cc,nn
+    private mutating func call() {
+        let jump = mmu.readWord(address: registers.pc)
+        mmu.write(word: registers.pc + 2, to: registers.sp - 2)
+        registers.pc = jump
+        registers.sp -= 2
+        clock += 3
+    }
+    
+    private mutating func call(condition: Bool) {
+        if condition {
+            call()
+        } else {
+            registers.pc.incr(by: 2)
+            clock += 3
+        }
+    }
+    
+    //RST n
+    private mutating func rst(n: UInt16) {
+        mmu.write(word: registers.pc, to: registers.sp - 2)
+        registers.sp -= 2
+        registers.pc = n
+        clock += 8
+    }
+    
+    //RET
+    private mutating func ret() {
+        registers.pc = mmu.readWord(address: registers.sp)
+        registers.sp += 2
+        clock += 2
+    }
+    
+    //RET cc
+    private mutating func ret(condition: Bool) {
+        if condition {
+            ret()
+        } else {
+            clock += 2
+        }
+    }
+    
+    //RETI
+    private mutating func reti() {
+        ret()
+        interruptsEnabled = true
     }
 }

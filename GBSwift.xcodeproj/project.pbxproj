@@ -14,7 +14,6 @@
 		750AD0D21D50391D005CDD2D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 750AD0D01D50391D005CDD2D /* LaunchScreen.storyboard */; };
 		750AD0DD1D503ABB005CDD2D /* CPU.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750AD0DC1D503ABB005CDD2D /* CPU.swift */; };
 		750AD0DF1D504530005CDD2D /* MMU.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750AD0DE1D504530005CDD2D /* MMU.swift */; };
-		7588EC371D52F83900F2D303 /* CPU+EXT.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7588EC361D52F83900F2D303 /* CPU+EXT.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +26,6 @@
 		750AD0D31D50391D005CDD2D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		750AD0DC1D503ABB005CDD2D /* CPU.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CPU.swift; sourceTree = "<group>"; };
 		750AD0DE1D504530005CDD2D /* MMU.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MMU.swift; sourceTree = "<group>"; };
-		7588EC361D52F83900F2D303 /* CPU+EXT.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CPU+EXT.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,7 +69,6 @@
 			isa = PBXGroup;
 			children = (
 				750AD0DC1D503ABB005CDD2D /* CPU.swift */,
-				7588EC361D52F83900F2D303 /* CPU+EXT.swift */,
 				750AD0DE1D504530005CDD2D /* MMU.swift */,
 			);
 			name = "Business Logic";
@@ -175,7 +172,6 @@
 				750AD0C81D50391D005CDD2D /* AppDelegate.swift in Sources */,
 				750AD0DD1D503ABB005CDD2D /* CPU.swift in Sources */,
 				750AD0DF1D504530005CDD2D /* MMU.swift in Sources */,
-				7588EC371D52F83900F2D303 /* CPU+EXT.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
