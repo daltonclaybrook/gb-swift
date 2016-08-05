@@ -79,6 +79,10 @@ struct CPU {
     var mmu = MMU()
     var clock: UInt32 = 0
     
+    private(set) var isHalted = false
+    private(set) var isStopped = false
+    private(set) var interruptsEnabled = true
+    
     mutating func exec() {
         let opCode = mmu.readByte(address: registers.pc)
         registers.pc.incr()
@@ -108,12 +112,6 @@ struct CPU {
 //MARK: Instructions
 
 extension CPU {
-
-    //MARK: NOP
-    
-    private mutating func nop() {
-        clock += 1
-    }
     
     //MARK: 8-bit loads
     
@@ -585,5 +583,81 @@ extension CPU {
         
         registers.a = UInt8(regA)
         clock += 1
+    }
+    
+    //CPL
+    private mutating func cpl() {
+        registers.a = ~registers.a
+        registers.flags.formUnion([.subtract, .halfCarry])
+        clock += 1
+    }
+    
+    //CCF
+    private mutating func ccf() {
+        registers.flags.subtract([.subtract, .halfCarry])
+        if registers.flags.contains(.fullCarry) {
+            registers.flags.subtract(.fullCarry)
+        } else {
+            registers.flags.formUnion(.fullCarry)
+        }
+        clock += 1
+    }
+    
+    //SCF
+    private mutating func scf() {
+        registers.flags.formIntersection(.zero)
+        registers.flags.formUnion(.fullCarry)
+        clock += 1
+    }
+    
+    //NOP
+    private mutating func nop() {
+        clock += 1
+    }
+    
+    //HALT
+    private mutating func halt() {
+        isHalted = true
+        clock += 1
+    }
+    
+    //STOP
+    private mutating func stop() {
+        isStopped = true
+        clock += 1
+    }
+    
+    //DI
+    private mutating func di() {
+        interruptsEnabled = false
+        clock += 1
+    }
+    
+    //EI
+    private mutating func ei() {
+        interruptsEnabled = true
+        clock += 1
+    }
+    
+    //RLC r
+    private mutating func rlca(reg: inout UInt8) {
+        registers.flags = []
+        if (reg >> 7) & 1 != 0 {
+            registers.flags.formUnion(.fullCarry)
+        } else {
+            registers.flags.subtract(.fullCarry)
+        }
+        reg = reg << 1
+        if reg == 0 {
+            registers.flags.formUnion(.zero)
+        }
+        clock += 1
+    }
+    
+    //RL r
+    private mutating func rla(reg: inout UInt8) {
+        let carry = (reg >> 7) & 1
+        rlca(reg: &reg)
+        reg += carry
     }
 }
