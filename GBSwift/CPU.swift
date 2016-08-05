@@ -99,14 +99,25 @@ struct CPU {
     // MARK: Static
     
     static let operations = [
-        //TODO: add correct operations
-        
         //0x0n
         Operation(name: "NOP") { $0.nop() },
+        Operation(name: "LD BC,nn") { $0.loadPC(toReg: &$0.registers.bc) },
+        Operation(name: "LD (BC),A") { $0.load(toAddr: $0.registers.bc, fromReg: $0.registers.a) },
+        Operation(name: "INC BC") { $0.inc(reg: &$0.registers.bc) },
+        Operation(name: "INC B") { $0.inc(reg: &$0.registers.b) },
+        Operation(name: "DEC B") { $0.dec(reg: &$0.registers.b) },
         Operation(name: "LD B,n") { $0.loadPC(toReg: &$0.registers.b) },
-        Operation(name: "LD B,(HL)") { $0.load(toReg: &$0.registers.b, fromAddr: $0.registers.hl) }
+        Operation(name: "RLC A") { $0.rlc(reg: &$0.registers.a, clockMod: 1) },
+        Operation(name: "LD (nn),SP") { $0.loadPCAddr(fromReg: $0.registers.sp) },
+        Operation(name: "ADD HL,BC") { $0.add(toReg: &$0.registers.hl, fromReg: $0.registers.bc) },
+        Operation(name: "LD A,(BC)") { $0.load(toReg: &$0.registers.a, fromAddr: $0.registers.bc) },
+        Operation(name: "DEC BC") { $0.dec(reg: &$0.registers.bc) },
+        Operation(name: "INC C") { $0.inc(reg: &$0.registers.c) },
+        Operation(name: "DEC C") { $0.dec(reg: &$0.registers.c) },
+        Operation(name: "LD C,n") { $0.loadPC(toReg: &$0.registers.c) },
+        Operation(name: "RRC A") { $0.rrc(reg: &$0.registers.a, clockMod: 1) }
+        //0x1n
     ]
-    
 }
 
 //MARK: Instructions
