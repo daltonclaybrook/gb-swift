@@ -98,7 +98,7 @@ struct CPU {
     
     // MARK: Static
     
-    static let operations = [
+    static let testOps = [
         //0x0n
         Operation(name: "NOP") { $0.nop() },
         Operation(name: "LD BC,nn") { $0.loadPC(toReg: &$0.registers.bc) },
@@ -115,9 +115,66 @@ struct CPU {
         Operation(name: "INC C") { $0.inc(reg: &$0.registers.c) },
         Operation(name: "DEC C") { $0.dec(reg: &$0.registers.c) },
         Operation(name: "LD C,n") { $0.loadPC(toReg: &$0.registers.c) },
-        Operation(name: "RRC A") { $0.rrc(reg: &$0.registers.a, clockMod: 1) }
+        Operation(name: "RRC A") { $0.rrc(reg: &$0.registers.a, clockMod: 1) },
         //0x1n
+        Operation(name: "STOP") { $0.stop() },
+        Operation(name: "LD DE,nn") { $0.loadPC(toReg: &$0.registers.de) },
+        Operation(name: "LD (DE),A") { $0.load(toAddr: $0.registers.de, fromReg: $0.registers.a) },
+        Operation(name: "INC DE") { $0.inc(reg: &$0.registers.de) },
+        Operation(name: "INC D") { $0.inc(reg: &$0.registers.d) },
+        Operation(name: "DEC D") { $0.dec(reg: &$0.registers.d) },
+        Operation(name: "LD D,n") { $0.loadPC(toReg: &$0.registers.d) },
+        Operation(name: "RL A") { $0.rl(reg: &$0.registers.a, clockMod: 1) },
+        Operation(name: "JR e") { $0.jr() },
+        Operation(name: "ADD HL,DE") { $0.add(toReg: &$0.registers.hl, fromReg: $0.registers.de) },
+        Operation(name: "LD A,(DE)") { $0.load(toReg: &$0.registers.a, fromAddr: $0.registers.de) },
+        Operation(name: "DEC DE") { $0.dec(reg: &$0.registers.de) },
+        Operation(name: "INC E") { $0.inc(reg: &$0.registers.e) },
+        Operation(name: "DEC E") { $0.dec(reg: &$0.registers.e) },
+        Operation(name: "LD E,n") { $0.loadPC(toReg: &$0.registers.e) },
+        Operation(name: "RR A") { $0.rr(reg: &$0.registers.a, clockMod: 1) },
+        //0x2n
+        Operation(name: "JR NZ,e") { $0.jr(condition: !$0.registers.flags.contains(.zero)) },
+        Operation(name: "LD HL,nn") { $0.loadPC(toReg: &$0.registers.hl) },
+        Operation(name: "LDI (HL),A") { $0.loadAndIncr(toRegAddr: &$0.registers.hl, fromReg: $0.registers.a) },
+        Operation(name: "INC HL") { $0.inc(reg: &$0.registers.hl) },
+        Operation(name: "INC H") { $0.inc(reg: &$0.registers.h) },
+        Operation(name: "DEC H") { $0.dec(reg: &$0.registers.h) },
+        Operation(name: "LD H,n") { $0.loadPC(toReg: &$0.registers.h) },
+        Operation(name: "DAA") { $0.daa() },
+        Operation(name: "JR Z,e") { $0.jr(condition: $0.registers.flags.contains(.zero)) },
+        Operation(name: "ADD HL,HL") { $0.add(toReg: &$0.registers.hl, fromReg: $0.registers.hl) },
+        Operation(name: "LDI A,(HL)") { $0.loadAndIncr(toReg: &$0.registers.a, fromRegAddr: &$0.registers.hl) },
+        Operation(name: "DEC HL") { $0.dec(reg: &$0.registers.hl) },
+        Operation(name: "INC L") { $0.inc(reg: &$0.registers.l) },
+        Operation(name: "DEC L") { $0.dec(reg: &$0.registers.l) },
+        Operation(name: "LD L,n") { $0.loadPC(toReg: &$0.registers.l) },
+        Operation(name: "CPL") { $0.cpl() },
+        //0x3n
+        Operation(name: "JR NC,e") { $0.jr(condition: !$0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "LD SP,nn") { $0.loadPC(toReg: &$0.registers.sp) },
+        Operation(name: "LDD (HL),A") { $0.loadAndDecr(toRegAddr: &$0.registers.hl, fromReg: $0.registers.a) },
+        Operation(name: "INC SP") { $0.inc(reg: &$0.registers.sp) },
+        Operation(name: "INC (HL)") { $0.inc(withAddr: $0.registers.hl) },
+        Operation(name: "DEC (HL)") { $0.dec(withAddr: $0.registers.hl) },
+        Operation(name: "LD (HL),n") { $0.loadPC(toAddr: $0.registers.hl) },
+        Operation(name: "SCF") { $0.scf() },
+        Operation(name: "JR C,e") { $0.jr(condition: $0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "ADD HL,SP") { $0.add(toReg: &$0.registers.hl, fromReg: $0.registers.sp) },
+        Operation(name: "LDD A,(HL)") { $0.load(toReg: &$0.registers.a, fromAddr: $0.registers.hl) },
+        Operation(name: "DEC SP") { $0.dec(reg: &$0.registers.sp) },
+        Operation(name: "INC A") { $0.inc(reg: &$0.registers.a) },
+        Operation(name: "DEC A") { $0.dec(reg: &$0.registers.a) },
+        Operation(name: "LD A,n") { $0.loadPC(toReg: &$0.registers.a) },
+        Operation(name: "CCF") { $0.ccf() },
+        //0x4n
+        
     ]
+    
+    static let operations: [Operation] = [
+        
+    ]
+    
 }
 
 //MARK: Instructions
@@ -139,6 +196,14 @@ extension CPU {
         toReg = mmu.readByte(address: addr)
         registers.pc.incr()
         clock += 4
+    }
+    
+    //LD (rr),n
+    private mutating func loadPC(toAddr: UInt16) {
+        let val = mmu.readByte(address: registers.pc)
+        mmu.write(byte: val, to: toAddr)
+        registers.pc.incr()
+        clock += 3
     }
     
     //LD r1,r2
@@ -181,7 +246,7 @@ extension CPU {
     }
     
     //LDI r,(rr)
-    private mutating func loadAndIncr(fromRegAddr: inout UInt16, toReg: inout UInt8) {
+    private mutating func loadAndIncr(toReg: inout UInt8, fromRegAddr: inout UInt16) {
         toReg = mmu.readByte(address: fromRegAddr)
         fromRegAddr += 1
         clock += 2
