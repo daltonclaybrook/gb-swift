@@ -302,9 +302,75 @@ struct CPU {
         Operation(name: "CP H") { $0.cp(withReg: $0.registers.h) },
         Operation(name: "CP L") { $0.cp(withReg: $0.registers.l) },
         Operation(name: "CP (HL)") { $0.cp(withAddr: $0.registers.hl) },
-        Operation(name: "CP A") { $0.cp(withReg: $0.registers.a) }
+        Operation(name: "CP A") { $0.cp(withReg: $0.registers.a) },
         //0xCn
-        
+        Operation(name: "RET NZ") { $0.ret(condition: !$0.registers.flags.contains(.zero)) },
+        Operation(name: "POP BC") { $0.pop(toReg: &$0.registers.bc) },
+        Operation(name: "JP NZ,nn") { $0.jp(condition: !$0.registers.flags.contains(.zero)) },
+        Operation(name: "JP nn") { $0.jp() },
+        Operation(name: "CALL NZ,nn") { $0.call(condition: !$0.registers.flags.contains(.zero)) },
+        Operation(name: "PUSH BC") { $0.push(fromReg: $0.registers.bc) },
+        Operation(name: "ADD A,n") { $0.addPC(toReg: &$0.registers.a) },
+        Operation(name: "RST 0") { $0.rst(n: 0x00) },
+        Operation(name: "RET Z") { $0.ret(condition: $0.registers.flags.contains(.zero)) },
+        Operation(name: "RET") { $0.ret() },
+        Operation(name: "JP Z,nn") { $0.jp(condition: $0.registers.flags.contains(.zero)) },
+        Operation(name: "EXP OPS") { $0.extOps() },
+        Operation(name: "CALL Z,nn") { $0.call(condition: $0.registers.flags.contains(.zero)) },
+        Operation(name: "CALL nn") { $0.call() },
+        Operation(name: "ADC A,n") { $0.addCarryPC(toReg: &$0.registers.a) },
+        Operation(name: "RST 8") { $0.rst(n: 0x08) },
+        //0xDn
+        Operation(name: "RET NC") { $0.ret(condition: !$0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "POP DE") { $0.pop(toReg: &$0.registers.de) },
+        Operation(name: "JP NC,nn") { $0.jp(condition: !$0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "CALL NC,nn") { $0.call(condition: !$0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "PUSH DE") { $0.push(fromReg: $0.registers.de) },
+        Operation(name: "SUB A,n") { $0.subPC() },
+        Operation(name: "RST 10") { $0.rst(n: 0x10) },
+        Operation(name: "RET C") { $0.ret(condition: $0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "RETI") { $0.reti() },
+        Operation(name: "JP C,nn") { $0.jp(condition: $0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "CALL c,nn") { $0.call(condition: $0.registers.flags.contains(.fullCarry)) },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "SBC A,n") { $0.subCarryPC() },
+        Operation(name: "RST 18") { $0.rst(n: 0x18) },
+        //0xEn
+        Operation(name: "LDH (n),A") { $0.loadPCAddrNibble(fromReg: &$0.registers.a) },
+        Operation(name: "POP HL") { $0.pop(toReg: &$0.registers.hl) },
+        Operation(name: "LDH (C),A") { $0.loadToCAddr(fromReg: $0.registers.a) },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "PUSH HL") { $0.push(fromReg: $0.registers.hl) },
+        Operation(name: "AND n") { $0.andPC() },
+        Operation(name: "RST 20") { $0.rst(n: 0x20) },
+        Operation(name: "ADD SP,e") { $0.addPC(toReg: &$0.registers.sp) },
+        Operation(name: "JP (HL)") { $0.jpHL() },
+        Operation(name: "LD (nn),A") { $0.loadPCAddr(fromReg: $0.registers.a) },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "XOR n") { $0.xorPC() },
+        Operation(name: "RST 28") { $0.rst(n: 0x28) },
+        //0xFn
+        Operation(name: "LDH A,(n)") { $0.loadPCAddr(toReg: &$0.registers.a) },
+        Operation(name: "POP AF") { $0.pop(toReg: &$0.registers.af) },
+        Operation(name: "LDH A,(C)") { $0.loadCAddr(toReg: &$0.registers.a) },
+        Operation(name: "DI") { $0.di() },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "PUSH AF") { $0.push(fromReg: $0.registers.af) },
+        Operation(name: "OR n") { $0.orPC() },
+        Operation(name: "RST 30") { $0.rst(n: 0x30) },
+        Operation(name: "LDHL SP,e") { $0.loadSPN(toReg: &$0.registers.hl) },
+        Operation(name: "LD SP,HL") { $0.loadToSP(fromReg: $0.registers.hl) },
+        Operation(name: "LD A,(NN)") { $0.loadPCAddr(toReg: &$0.registers.a) },
+        Operation(name: "EI") { $0.ei() },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "XX") { _ in /*nop*/ },
+        Operation(name: "CP n") { $0.cpPC() },
+        Operation(name: "RST 38") { $0.rst(n: 0x38) }
     ]
 }
 
@@ -335,6 +401,14 @@ extension CPU {
         mmu.write(byte: val, to: toAddr)
         registers.pc.incr()
         clock += 3
+    }
+    
+    //LD (nn),rr
+    private mutating func loadPCAddr(fromReg: UInt8) {
+        let addr = mmu.readWord(address: registers.pc)
+        mmu.write(byte: fromReg, to: addr)
+        registers.pc.incr()
+        clock += 4
     }
     
     //LD r1,r2
@@ -560,6 +634,12 @@ extension CPU {
         clock += 1
     }
     
+    //SBC n
+    private mutating func subCarryPC() {
+        subCarry(fromAddr: registers.pc)
+        registers.pc.incr()
+    }
+    
     //MARK: Bitwise
     
     //AND r
@@ -647,6 +727,12 @@ extension CPU {
         let val = mmu.readByte(address: withAddr)
         cp(withReg: val)
         clock += 1
+    }
+    
+    //CP n
+    private mutating func cpPC() {
+        cp(withAddr: registers.pc)
+        registers.pc.incr()
     }
     
     //INC r
@@ -1185,5 +1271,10 @@ extension CPU {
     private mutating func reti() {
         ret()
         interruptsEnabled = true
+    }
+    
+    //MARK: Extra Opcodes
+    private mutating func extOps() {
+        
     }
 }
