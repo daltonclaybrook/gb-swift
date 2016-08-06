@@ -98,7 +98,7 @@ struct CPU {
     
     // MARK: Static
     
-    static let testOps = [
+    static let operations = [
         //0x0n
         Operation(name: "NOP") { $0.nop() },
         Operation(name: "LD BC,nn") { $0.loadPC(toReg: &$0.registers.bc) },
@@ -168,13 +168,144 @@ struct CPU {
         Operation(name: "LD A,n") { $0.loadPC(toReg: &$0.registers.a) },
         Operation(name: "CCF") { $0.ccf() },
         //0x4n
+        Operation(name: "LD B,B") { $0.load(toReg: &$0.registers.b, fromReg: $0.registers.b) },
+        Operation(name: "LD B,C") { $0.load(toReg: &$0.registers.b, fromReg: $0.registers.c) },
+        Operation(name: "LD B,D") { $0.load(toReg: &$0.registers.b, fromReg: $0.registers.d) },
+        Operation(name: "LD B,E") { $0.load(toReg: &$0.registers.b, fromReg: $0.registers.e) },
+        Operation(name: "LD B,H") { $0.load(toReg: &$0.registers.b, fromReg: $0.registers.h) },
+        Operation(name: "LD B,L") { $0.load(toReg: &$0.registers.b, fromReg: $0.registers.l) },
+        Operation(name: "LD B,(HL)") { $0.load(toReg: &$0.registers.b, fromAddr: $0.registers.hl) },
+        Operation(name: "LD B,A") { $0.load(toReg: &$0.registers.b, fromReg: $0.registers.a) },
+        Operation(name: "LD C,B") { $0.load(toReg: &$0.registers.c, fromReg: $0.registers.b) },
+        Operation(name: "LD C,C") { $0.load(toReg: &$0.registers.c, fromReg: $0.registers.c) },
+        Operation(name: "LD C,D") { $0.load(toReg: &$0.registers.c, fromReg: $0.registers.d) },
+        Operation(name: "LD C,E") { $0.load(toReg: &$0.registers.c, fromReg: $0.registers.e) },
+        Operation(name: "LD C,H") { $0.load(toReg: &$0.registers.c, fromReg: $0.registers.h) },
+        Operation(name: "LD C,L") { $0.load(toReg: &$0.registers.c, fromReg: $0.registers.l) },
+        Operation(name: "LD C,(HL)") { $0.load(toReg: &$0.registers.c, fromAddr: $0.registers.hl) },
+        Operation(name: "LD C,A") { $0.load(toReg: &$0.registers.c, fromReg: $0.registers.a) },
+        //0x5n
+        Operation(name: "LD D,B") { $0.load(toReg: &$0.registers.d, fromReg: $0.registers.b) },
+        Operation(name: "LD D,C") { $0.load(toReg: &$0.registers.d, fromReg: $0.registers.c) },
+        Operation(name: "LD D,D") { $0.load(toReg: &$0.registers.d, fromReg: $0.registers.d) },
+        Operation(name: "LD D,E") { $0.load(toReg: &$0.registers.d, fromReg: $0.registers.e) },
+        Operation(name: "LD D,H") { $0.load(toReg: &$0.registers.d, fromReg: $0.registers.h) },
+        Operation(name: "LD D,L") { $0.load(toReg: &$0.registers.d, fromReg: $0.registers.l) },
+        Operation(name: "LD D,(HL)") { $0.load(toReg: &$0.registers.d, fromAddr: $0.registers.hl) },
+        Operation(name: "LD D,A") { $0.load(toReg: &$0.registers.d, fromReg: $0.registers.a) },
+        Operation(name: "LD E,B") { $0.load(toReg: &$0.registers.e, fromReg: $0.registers.b) },
+        Operation(name: "LD E,C") { $0.load(toReg: &$0.registers.e, fromReg: $0.registers.c) },
+        Operation(name: "LD E,D") { $0.load(toReg: &$0.registers.e, fromReg: $0.registers.d) },
+        Operation(name: "LD E,E") { $0.load(toReg: &$0.registers.e, fromReg: $0.registers.e) },
+        Operation(name: "LD E,H") { $0.load(toReg: &$0.registers.e, fromReg: $0.registers.h) },
+        Operation(name: "LD E,L") { $0.load(toReg: &$0.registers.e, fromReg: $0.registers.l) },
+        Operation(name: "LD E,(HL)") { $0.load(toReg: &$0.registers.e, fromAddr: $0.registers.hl) },
+        Operation(name: "LD E,A") { $0.load(toReg: &$0.registers.e, fromReg: $0.registers.a) },
+        //0x6n
+        Operation(name: "LD H,B") { $0.load(toReg: &$0.registers.h, fromReg: $0.registers.b) },
+        Operation(name: "LD H,C") { $0.load(toReg: &$0.registers.h, fromReg: $0.registers.c) },
+        Operation(name: "LD H,D") { $0.load(toReg: &$0.registers.h, fromReg: $0.registers.d) },
+        Operation(name: "LD H,E") { $0.load(toReg: &$0.registers.h, fromReg: $0.registers.e) },
+        Operation(name: "LD H,H") { $0.load(toReg: &$0.registers.h, fromReg: $0.registers.h) },
+        Operation(name: "LD H,L") { $0.load(toReg: &$0.registers.h, fromReg: $0.registers.l) },
+        Operation(name: "LD H,(HL)") { $0.load(toReg: &$0.registers.h, fromAddr: $0.registers.hl) },
+        Operation(name: "LD H,A") { $0.load(toReg: &$0.registers.h, fromReg: $0.registers.a) },
+        Operation(name: "LD L,B") { $0.load(toReg: &$0.registers.l, fromReg: $0.registers.b) },
+        Operation(name: "LD L,C") { $0.load(toReg: &$0.registers.l, fromReg: $0.registers.c) },
+        Operation(name: "LD L,D") { $0.load(toReg: &$0.registers.l, fromReg: $0.registers.d) },
+        Operation(name: "LD L,E") { $0.load(toReg: &$0.registers.l, fromReg: $0.registers.e) },
+        Operation(name: "LD L,H") { $0.load(toReg: &$0.registers.l, fromReg: $0.registers.h) },
+        Operation(name: "LD L,L") { $0.load(toReg: &$0.registers.l, fromReg: $0.registers.l) },
+        Operation(name: "LD L,(HL)") { $0.load(toReg: &$0.registers.l, fromAddr: $0.registers.hl) },
+        Operation(name: "LD L,A") { $0.load(toReg: &$0.registers.l, fromReg: $0.registers.a) },
+        //0x7n
+        Operation(name: "LD (HL),B") { $0.load(toAddr: $0.registers.hl, fromReg: $0.registers.b) },
+        Operation(name: "LD (HL),B") { $0.load(toAddr: $0.registers.hl, fromReg: $0.registers.c) },
+        Operation(name: "LD (HL),B") { $0.load(toAddr: $0.registers.hl, fromReg: $0.registers.d) },
+        Operation(name: "LD (HL),B") { $0.load(toAddr: $0.registers.hl, fromReg: $0.registers.e) },
+        Operation(name: "LD (HL),B") { $0.load(toAddr: $0.registers.hl, fromReg: $0.registers.h) },
+        Operation(name: "LD (HL),B") { $0.load(toAddr: $0.registers.hl, fromReg: $0.registers.l) },
+        Operation(name: "HALT") { $0.halt() },
+        Operation(name: "LD (HL),B") { $0.load(toAddr: $0.registers.hl, fromReg: $0.registers.a) },
+        Operation(name: "LD A,B") { $0.load(toReg: &$0.registers.a, fromReg: $0.registers.b) },
+        Operation(name: "LD A,C") { $0.load(toReg: &$0.registers.a, fromReg: $0.registers.c) },
+        Operation(name: "LD A,D") { $0.load(toReg: &$0.registers.a, fromReg: $0.registers.d) },
+        Operation(name: "LD A,E") { $0.load(toReg: &$0.registers.a, fromReg: $0.registers.e) },
+        Operation(name: "LD A,H") { $0.load(toReg: &$0.registers.a, fromReg: $0.registers.h) },
+        Operation(name: "LD A,L") { $0.load(toReg: &$0.registers.a, fromReg: $0.registers.l) },
+        Operation(name: "LD A,(HL)") { $0.load(toReg: &$0.registers.a, fromAddr: $0.registers.hl) },
+        Operation(name: "LD A,A") { $0.load(toReg: &$0.registers.a, fromReg: $0.registers.a) },
+        //0x8n
+        Operation(name: "ADD A,B") { $0.add(toReg: &$0.registers.a, fromReg: $0.registers.b) },
+        Operation(name: "ADD A,C") { $0.add(toReg: &$0.registers.a, fromReg: $0.registers.c) },
+        Operation(name: "ADD A,D") { $0.add(toReg: &$0.registers.a, fromReg: $0.registers.d) },
+        Operation(name: "ADD A,E") { $0.add(toReg: &$0.registers.a, fromReg: $0.registers.e) },
+        Operation(name: "ADD A,H") { $0.add(toReg: &$0.registers.a, fromReg: $0.registers.h) },
+        Operation(name: "ADD A,L") { $0.add(toReg: &$0.registers.a, fromReg: $0.registers.l) },
+        Operation(name: "ADD A,(HL)") { $0.add(toReg: &$0.registers.a, fromAddr: $0.registers.hl) },
+        Operation(name: "ADD A,A") { $0.add(toReg: &$0.registers.a, fromReg: $0.registers.a) },
+        Operation(name: "ADC A,B") { $0.addCarry(toReg: &$0.registers.a, fromReg: $0.registers.b) },
+        Operation(name: "ADC A,C") { $0.addCarry(toReg: &$0.registers.a, fromReg: $0.registers.c) },
+        Operation(name: "ADC A,D") { $0.addCarry(toReg: &$0.registers.a, fromReg: $0.registers.d) },
+        Operation(name: "ADC A,E") { $0.addCarry(toReg: &$0.registers.a, fromReg: $0.registers.e) },
+        Operation(name: "ADC A,H") { $0.addCarry(toReg: &$0.registers.a, fromReg: $0.registers.h) },
+        Operation(name: "ADC A,L") { $0.addCarry(toReg: &$0.registers.a, fromReg: $0.registers.l) },
+        Operation(name: "ADC A,(HL)") { $0.addCarry(toReg: &$0.registers.a, fromAddr: $0.registers.hl) },
+        Operation(name: "ADC A,A") { $0.addCarry(toReg: &$0.registers.a, fromReg: $0.registers.a) },
+        //0x9n
+        Operation(name: "SUB A,B") { $0.sub(fromReg: $0.registers.b) },
+        Operation(name: "SUB A,C") { $0.sub(fromReg: $0.registers.c) },
+        Operation(name: "SUB A,D") { $0.sub(fromReg: $0.registers.d) },
+        Operation(name: "SUB A,E") { $0.sub(fromReg: $0.registers.e) },
+        Operation(name: "SUB A,H") { $0.sub(fromReg: $0.registers.h) },
+        Operation(name: "SUB A,L") { $0.sub(fromReg: $0.registers.l) },
+        Operation(name: "SUB A,(HL)") { $0.sub(fromAddr: $0.registers.hl) },
+        Operation(name: "SUB A,A") { $0.sub(fromReg: $0.registers.a) },
+        Operation(name: "SBC A,B") { $0.subCarry(fromReg: $0.registers.b) },
+        Operation(name: "SBC A,C") { $0.subCarry(fromReg: $0.registers.c) },
+        Operation(name: "SBC A,D") { $0.subCarry(fromReg: $0.registers.d) },
+        Operation(name: "SBC A,E") { $0.subCarry(fromReg: $0.registers.e) },
+        Operation(name: "SBC A,H") { $0.subCarry(fromReg: $0.registers.h) },
+        Operation(name: "SBC A,L") { $0.subCarry(fromReg: $0.registers.l) },
+        Operation(name: "SBC A,(HL)") { $0.subCarry(fromAddr: $0.registers.hl) },
+        Operation(name: "SBC A,A") { $0.subCarry(fromReg: $0.registers.a) },
+        //0xAn
+        Operation(name: "AND B") { $0.and(fromReg: $0.registers.b) },
+        Operation(name: "AND C") { $0.and(fromReg: $0.registers.c) },
+        Operation(name: "AND D") { $0.and(fromReg: $0.registers.d) },
+        Operation(name: "AND E") { $0.and(fromReg: $0.registers.e) },
+        Operation(name: "AND H") { $0.and(fromReg: $0.registers.h) },
+        Operation(name: "AND L") { $0.and(fromReg: $0.registers.l) },
+        Operation(name: "AND (HL)") { $0.and(fromAddr: $0.registers.hl) },
+        Operation(name: "AND A") { $0.and(fromReg: $0.registers.a) },
+        Operation(name: "XOR B") { $0.xor(fromReg: $0.registers.b) },
+        Operation(name: "XOR C") { $0.xor(fromReg: $0.registers.c) },
+        Operation(name: "XOR D") { $0.xor(fromReg: $0.registers.d) },
+        Operation(name: "XOR E") { $0.xor(fromReg: $0.registers.e) },
+        Operation(name: "XOR H") { $0.xor(fromReg: $0.registers.h) },
+        Operation(name: "XOR L") { $0.xor(fromReg: $0.registers.l) },
+        Operation(name: "XOR (HL)") { $0.xor(fromAddr: $0.registers.hl) },
+        Operation(name: "XOR A") { $0.xor(fromReg: $0.registers.a) },
+        //0xBn
+        Operation(name: "OR B") { $0.or(fromReg: $0.registers.b) },
+        Operation(name: "OR C") { $0.or(fromReg: $0.registers.c) },
+        Operation(name: "OR D") { $0.or(fromReg: $0.registers.d) },
+        Operation(name: "OR E") { $0.or(fromReg: $0.registers.e) },
+        Operation(name: "OR H") { $0.or(fromReg: $0.registers.h) },
+        Operation(name: "OR L") { $0.or(fromReg: $0.registers.l) },
+        Operation(name: "OR (HL)") { $0.or(fromAddr: $0.registers.hl) },
+        Operation(name: "OR A") { $0.or(fromReg: $0.registers.a) },
+        Operation(name: "CP B") { $0.cp(withReg: $0.registers.b) },
+        Operation(name: "CP C") { $0.cp(withReg: $0.registers.c) },
+        Operation(name: "CP D") { $0.cp(withReg: $0.registers.d) },
+        Operation(name: "CP E") { $0.cp(withReg: $0.registers.e) },
+        Operation(name: "CP H") { $0.cp(withReg: $0.registers.h) },
+        Operation(name: "CP L") { $0.cp(withReg: $0.registers.l) },
+        Operation(name: "CP (HL)") { $0.cp(withAddr: $0.registers.hl) },
+        Operation(name: "CP A") { $0.cp(withReg: $0.registers.a) }
+        //0xCn
         
     ]
-    
-    static let operations: [Operation] = [
-        
-    ]
-    
 }
 
 //MARK: Instructions
@@ -350,7 +481,7 @@ extension CPU {
     }
     
     //ADD r,(rr)
-    private mutating func add(fromAddr: UInt16, toReg: inout UInt8) {
+    private mutating func add(toReg: inout UInt8, fromAddr: UInt16) {
         let val = mmu.readByte(address: fromAddr)
         add(toReg: &toReg, fromReg: val)
         clock += 1
@@ -358,18 +489,18 @@ extension CPU {
     
     //ADD r,n
     private mutating func addPC(toReg: inout UInt8) {
-        add(fromAddr: registers.pc, toReg: &toReg)
+        add(toReg: &toReg, fromAddr: registers.pc)
         registers.pc.incr()
     }
     
     //ADC r,r
-    private mutating func addCarry(fromReg: UInt8, toReg: inout UInt8) {
+    private mutating func addCarry(toReg: inout UInt8, fromReg: UInt8) {
         let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
         add(toReg: &toReg, fromReg: fromReg + mod)
     }
     
     //ADC r,(rr)
-    private mutating func addCarry(fromAddr: UInt16, toReg: inout UInt8) {
+    private mutating func addCarry(toReg: inout UInt8, fromAddr: UInt16) {
         let val = mmu.readByte(address: fromAddr)
         let mod: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
         add(toReg: &toReg, fromReg: val + mod)
@@ -378,7 +509,7 @@ extension CPU {
     
     //ADC r,n
     private mutating func addCarryPC(toReg: inout UInt8) {
-        addCarry(fromAddr: registers.pc, toReg: &toReg)
+        addCarry(toReg: &toReg, fromAddr: registers.pc)
         registers.pc.incr()
     }
     
@@ -508,6 +639,13 @@ extension CPU {
             registers.flags.formUnion(.zero)
         }
         
+        clock += 1
+    }
+    
+    //CP (rr)
+    private mutating func cp(withAddr: UInt16) {
+        let val = mmu.readByte(address: withAddr)
+        cp(withReg: val)
         clock += 1
     }
     
