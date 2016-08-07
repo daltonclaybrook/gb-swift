@@ -868,7 +868,7 @@ extension CPU {
     //ADC r,n
     private mutating func addCarryPC(toReg: inout UInt8) {
         addCarry(toReg: &toReg, fromAddr: registers.pc)
-        registers.pc.incr(by: 2)
+        registers.pc.incr()
     }
     
     //SUB r
@@ -1086,9 +1086,9 @@ extension CPU {
     private mutating func add(toReg: inout UInt16, fromReg: UInt16) {
         let to32 = UInt32(toReg)
         let from32 = UInt32(fromReg)
-        let result = to32 &+ from32
+        let result = to32 + from32
         
-        registers.flags = []
+        registers.flags.formIntersection(.zero)
         if (to32 ^ from32 ^ result) & 0x1000 != 0 {
             registers.flags.formUnion(.halfCarry)
         }
@@ -1097,10 +1097,6 @@ extension CPU {
         }
         
         toReg = UInt16(truncatingBitPattern: result)
-        if toReg == 0 {
-            registers.flags.formUnion(.zero)
-        }
-        
         clock += 2
     }
     
@@ -1246,10 +1242,10 @@ extension CPU {
     //RLC r
     // rotate left, left bit wraps to right
     private mutating func rlc(reg: inout UInt8, clockMod: UInt32) {
-        registers.flags = []
         let carry = (reg >> 7) & 1
         reg = (reg << 1) | carry
         
+        registers.flags = []
         if carry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
@@ -1265,11 +1261,11 @@ extension CPU {
     //RL r
     // 9-bit rotate left, left bit -> carry -> right bit
     private mutating func rl(reg: inout UInt8, clockMod: UInt32) {
-        registers.flags = []
         let newCarry = (reg >> 7) & 1
         let oldCarry: UInt8 = registers.flags.contains(.fullCarry) ? 1 : 0
         reg = (reg << 1) | oldCarry
         
+        registers.flags = []
         if newCarry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
@@ -1299,9 +1295,10 @@ extension CPU {
     
     //RRC r
     private mutating func rrc(reg: inout UInt8, clockMod: UInt32) {
-        registers.flags = []
         let carry = (reg & 1) << 7
         reg = (reg >> 1) | carry
+        
+        registers.flags = []
         if carry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
@@ -1316,16 +1313,17 @@ extension CPU {
     
     //RR r
     private mutating func rr(reg: inout UInt8, clockMod: UInt32) {
-        registers.flags = []
-        let newCarry = (reg & 1) << 7
+        let newCarry = reg & 1
         let oldCarry: UInt8 = registers.flags.contains(.fullCarry) ? 0x80 : 0
         reg = (reg >> 1) | oldCarry
+        
+        registers.flags = []
         if newCarry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
             registers.flags.subtract(.fullCarry)
         }
-        if reg == 0 {
+        if reg == 0 && clockMod == 2 {
             registers.flags.formUnion(.zero)
         }
         
@@ -1348,10 +1346,10 @@ extension CPU {
     
     //SLA r
     private mutating func sla(reg: inout UInt8) {
-        registers.flags = []
         let carry = (reg >> 7) & 1
         reg = reg << 1
         
+        registers.flags = []
         if carry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
@@ -1374,11 +1372,11 @@ extension CPU {
     
     //SRA r
     private mutating func sra(reg: inout UInt8) {
-        registers.flags = []
         let carry = reg & 1
         let msb = reg & 0x80
         reg = (reg >> 1) | msb
         
+        registers.flags = []
         if carry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
@@ -1401,10 +1399,10 @@ extension CPU {
     
     //SRL r
     private mutating func srl(reg: inout UInt8) {
-        registers.flags = []
         let carry = reg & 1
         reg = reg >> 1
         
+        registers.flags = []
         if carry != 0 {
             registers.flags.formUnion(.fullCarry)
         } else {
@@ -1549,6 +1547,7 @@ extension CPU {
     private mutating func ret(condition: Bool) {
         if condition {
             ret()
+            clock += 1
         } else {
             clock += 2
         }
@@ -1563,9 +1562,10 @@ extension CPU {
     //MARK: Extra Opcodes
     private mutating func extOps() {
         let opCode = mmu.readByte(address: registers.pc)
-        registers.pc.incr()
-        
         let op = CPU.extOperations[Int(opCode)]
+        
+        print("mine: (pc: \(String(registers.pc, radix: 16))) (\(String(opCode, radix: 16))) \(op.name) (clock: \(timer.mCounter))")
+        registers.pc.incr()
         op.instruction(cpu: &self)
     }
 }
