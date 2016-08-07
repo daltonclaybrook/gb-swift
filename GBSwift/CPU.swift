@@ -40,7 +40,7 @@ extension Registers {
         get { return (UInt16(a) << 8) | UInt16(flags.rawValue) }
         set {
             a = UInt8(newValue >> 8)
-            flags = Flags(rawValue: UInt8(newValue & 0xFF))
+            flags = Flags(rawValue: UInt8(newValue & 0xF0))
         }
     }
     
