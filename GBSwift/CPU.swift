@@ -355,7 +355,7 @@ struct CPU {
         Operation(name: "XOR n") { $0.xorPC() },
         Operation(name: "RST 28") { $0.rst(n: 0x28) },
         //0xFn
-        Operation(name: "LDH A,(n)") { $0.loadPCAddr(toReg: &$0.registers.a) },
+        Operation(name: "LDH A,(n)") { $0.loadPCAddrNibble(toReg: &$0.registers.a) },
         Operation(name: "POP AF") { $0.pop(toReg: &$0.registers.af) },
         Operation(name: "LDH A,(C)") { $0.loadCAddr(toReg: &$0.registers.a) },
         Operation(name: "DI") { $0.di() },
@@ -666,7 +666,7 @@ extension CPU {
     private mutating func loadPCAddr(toReg: inout UInt8) {
         let addr = mmu.readWord(address: registers.pc)
         toReg = mmu.readByte(address: addr)
-        registers.pc.incr()
+        registers.pc.incr(by: 2)
         clock += 4
     }
     
@@ -682,7 +682,7 @@ extension CPU {
     private mutating func loadPCAddr(fromReg: UInt8) {
         let addr = mmu.readWord(address: registers.pc)
         mmu.write(byte: fromReg, to: addr)
-        registers.pc.incr()
+        registers.pc.incr(by: 2)
         clock += 4
     }
     
@@ -748,12 +748,20 @@ extension CPU {
         clock += 3
     }
     
+    //LDH r,(n)
+    private mutating func loadPCAddrNibble(toReg: inout UInt8) {
+        let addr = mmu.readByte(address: registers.pc)
+        toReg = mmu.readByte(address: UInt16(addr) | 0xFF00)
+        registers.pc.incr()
+        clock += 3
+    }
+    
     //MARK: 16-bit loads
     
     //LD rr,(nn)
     private mutating func loadPC(toReg: inout UInt16) {
         toReg = mmu.readWord(address: registers.pc)
-        registers.pc.incr()
+        registers.pc.incr(by: 2)
         clock += 3
     }
     
@@ -786,7 +794,7 @@ extension CPU {
     private mutating func loadPCAddr(fromReg: UInt16) {
         let addr = mmu.readWord(address: registers.pc)
         mmu.write(word: fromReg, to: addr)
-        registers.pc.incr()
+        registers.pc.incr(by: 2)
         clock += 5
     }
     
@@ -796,7 +804,7 @@ extension CPU {
     private mutating func push(fromReg: UInt16) {
         registers.sp -= 2
         mmu.write(word: fromReg, to: registers.sp)
-        clock += 2
+        clock += 4
     }
     
     //POP rr
@@ -821,11 +829,12 @@ extension CPU {
         if (to16 ^ from16 ^ result) & 0x100 != 0 {
             registers.flags.formUnion(.fullCarry)
         }
-        if result == 0 {
+        
+        toReg = UInt8(truncatingBitPattern: result)
+        if toReg == 0 {
             registers.flags.formUnion(.zero)
         }
         
-        toReg = UInt8(truncatingBitPattern: result)
         clock += 1
     }
     
@@ -859,7 +868,7 @@ extension CPU {
     //ADC r,n
     private mutating func addCarryPC(toReg: inout UInt8) {
         addCarry(toReg: &toReg, fromAddr: registers.pc)
-        registers.pc.incr()
+        registers.pc.incr(by: 2)
     }
     
     //SUB r
@@ -875,11 +884,12 @@ extension CPU {
         if (a16 ^ r16 ^ result) & 0x100 != 0 {
             registers.flags.formUnion(.fullCarry)
         }
-        if result == 0 {
+        
+        registers.a = UInt8(truncatingBitPattern: result)
+        if registers.a == 0 {
             registers.flags.formUnion(.zero)
         }
         
-        registers.a = UInt8(truncatingBitPattern: result)
         clock += 1
     }
     
@@ -912,7 +922,7 @@ extension CPU {
     //SBC n
     private mutating func subCarryPC() {
         subCarry(fromAddr: registers.pc)
-        registers.pc.incr()
+        registers.pc.incr(by: 2)
     }
     
     //MARK: Bitwise
@@ -1085,11 +1095,12 @@ extension CPU {
         if (to32 ^ from32 ^ result) & 0x10000 != 0 {
             registers.flags.formUnion(.fullCarry)
         }
-        if result == 0 {
+        
+        toReg = UInt16(truncatingBitPattern: result)
+        if toReg == 0 {
             registers.flags.formUnion(.zero)
         }
         
-        toReg = UInt16(truncatingBitPattern: result)
         clock += 2
     }
     
@@ -1464,7 +1475,7 @@ extension CPU {
     //JP nn
     private mutating func jp() {
         registers.pc = mmu.readWord(address: registers.pc)
-        clock += 3
+        clock += 4
     }
     
     //JP cc,nn
@@ -1472,7 +1483,7 @@ extension CPU {
         if condition {
             jp()
         } else {
-            registers.pc.incr()
+            registers.pc.incr(by: 2)
             clock += 3
         }
     }
@@ -1487,7 +1498,8 @@ extension CPU {
     private mutating func jr() {
         let val = Int32(Int8(bitPattern: mmu.readByte(address: registers.pc)))
         registers.pc = UInt16(truncatingBitPattern: Int32(registers.pc) + Int32(val))
-        clock += 2
+        registers.pc.incr()
+        clock += 3
     }
     
     //JR cc,n
@@ -1506,7 +1518,7 @@ extension CPU {
         mmu.write(word: registers.pc + 2, to: registers.sp - 2)
         registers.pc = jump
         registers.sp -= 2
-        clock += 3
+        clock += 6
     }
     
     private mutating func call(condition: Bool) {
@@ -1523,14 +1535,14 @@ extension CPU {
         mmu.write(word: registers.pc, to: registers.sp - 2)
         registers.sp -= 2
         registers.pc = n
-        clock += 8
+        clock += 4
     }
     
     //RET
     private mutating func ret() {
         registers.pc = mmu.readWord(address: registers.sp)
         registers.sp += 2
-        clock += 2
+        clock += 4
     }
     
     //RET cc
