@@ -15,7 +15,7 @@ protocol MMUProtocol {
 
 struct MMU: MMUProtocol {
     
-    private var inBios = true
+    var inBios = true
     private var bios: [UInt8]
     private var rom: [UInt8]
     private var wram = [UInt8](repeating: 0, count: 0x2000)
@@ -45,7 +45,7 @@ struct MMU: MMUProtocol {
         case 0xFE00..<0xFEA0:   // CPU Object Attribute Memory
             oam[Int(address & 0xFF)] = byte
         case 0xFF80...0xFFFF:   // Zero-page RAM
-            zram[Int(address & 0xFF)] = byte
+            zram[Int(address & 0x7F)] = byte
         default:
             break
         }
@@ -75,13 +75,13 @@ struct MMU: MMUProtocol {
         case 0xFE00..<0xFEA0:   // CPU Object Attribute Memory
             return oam[Int(address & 0xFF)]
         case 0xFF80...0xFFFF:   // Zero-page RAM
-            return zram[Int(address & 0xFF)]
+            return zram[Int(address & 0x7F)]
         default:
             return 0
         }
     }
     
     func readWord(address: UInt16) -> UInt16 {
-        return UInt16((readByte(address: address+1) << 8) | readByte(address: address))
+        return (UInt16(readByte(address: address+1)) << 8) | UInt16(readByte(address: address))
     }
 }
