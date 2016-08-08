@@ -9,8 +9,9 @@
 protocol MMUProtocol {
     mutating func write(byte: UInt8, to address: UInt16)
     mutating func write(word: UInt16, to address: UInt16)
-    mutating func readByte(address: UInt16) -> UInt8
-    mutating func readWord(address: UInt16) -> UInt16
+    func readByte(address: UInt16) -> UInt8
+    func readWord(address: UInt16) -> UInt16
+    mutating func requestInterrupt(_ interrupt: UInt8)
 }
 
 struct MMU: MMUProtocol {
@@ -24,6 +25,7 @@ struct MMU: MMUProtocol {
     
     private(set) var vram = [UInt8](repeating: 0, count: 0x2000)
     private(set) var oam = [UInt8](repeating: 0, count: 0xA0)
+    private(set) var memIO = [UInt8](repeating: 0, count: 0x80)
     
     init(bios: [UInt8], rom: [UInt8]) {
         self.bios = bios
@@ -44,6 +46,8 @@ struct MMU: MMUProtocol {
             wram[Int(address & 0x1FFF)] = byte
         case 0xFE00..<0xFEA0:   // CPU Object Attribute Memory
             oam[Int(address & 0xFF)] = byte
+        case 0xFF00..<0xFF80:   // Memory-mapped I/O
+            memIO[Int(address & 0x7F)] = byte
         case 0xFF80...0xFFFF:   // Zero-page RAM
             zram[Int(address & 0x7F)] = byte
         default:
@@ -59,7 +63,7 @@ struct MMU: MMUProtocol {
     func readByte(address: UInt16) -> UInt8 {
         switch address {
         case 0x0000..<0x1000:   // BIOS / ROM 0
-            if inBios {
+            if inBios && address < 0x100 {
                 return bios[Int(address)]
             } else {
                 return rom[Int(address)]
@@ -74,6 +78,8 @@ struct MMU: MMUProtocol {
             return wram[Int(address & 0x1FFF)]
         case 0xFE00..<0xFEA0:   // CPU Object Attribute Memory
             return oam[Int(address & 0xFF)]
+        case 0xFF00..<0xFF80:   // Memory-mapped I/O
+            return memIO[Int(address & 0x7F)]
         case 0xFF80...0xFFFF:   // Zero-page RAM
             return zram[Int(address & 0x7F)]
         default:
@@ -83,5 +89,9 @@ struct MMU: MMUProtocol {
     
     func readWord(address: UInt16) -> UInt16 {
         return (UInt16(readByte(address: address+1)) << 8) | UInt16(readByte(address: address))
+    }
+    
+    func requestInterrupt(_ interrupt: UInt8) {
+        //no-op
     }
 }
