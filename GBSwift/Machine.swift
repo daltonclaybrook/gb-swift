@@ -13,12 +13,14 @@ struct Machine {
     func start() {
         var mmu = MMU(bios: loadBIOS(), rom: loadROM())
         var cpu = CPU(mmu: mmu)
+        var gpu = GPU(mmu: &mmu)
         
         while true {
             if mmu.inBios && cpu.registers.pc == 0x100 {
                 mmu.inBios = false
             }
             cpu.exec(mmu: &mmu)
+            gpu.step(mmu: &mmu, clock: cpu.clock)
         }
     }
     
