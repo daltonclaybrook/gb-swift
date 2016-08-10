@@ -11,13 +11,20 @@ import Foundation
 struct Machine {
     
     func start() {
-        var mmu = MMU(bios: loadBIOS(), rom: loadROM())
+        let gpu = GPU()
+        var mmu = MMU(bios: loadBIOS(), rom: loadROM(), gpu: gpu)
         var cpu = CPU(mmu: mmu)
-        var gpu = GPU(mmu: &mmu)
+        
+        let startDate = Date()
         
         while true {
             if mmu.inBios && cpu.registers.pc == 0x100 {
-                mmu.inBios = false
+                
+                let interval = Date().timeIntervalSince(startDate)
+                let perSec = Int(Double(cpu.clock * 4) / interval)
+                print("per sec: \(perSec)")
+                
+                mmu.swapBios()
             }
             cpu.exec(mmu: &mmu)
             gpu.step(mmu: &mmu, clock: cpu.clock)
@@ -26,20 +33,17 @@ struct Machine {
     
     //MARK: Private
     
-    private func loadBIOS() -> [UInt8] {
+    private func loadBIOS() -> Data {
         return loadROM(named: "bios")
     }
     
-    private func loadROM() -> [UInt8] {
+    private func loadROM() -> Data {
         return loadROM(named: "pokemon")
         //return loadROM(named: "cpu_instrs")
     }
     
-    private func loadROM(named: String) -> [UInt8] {
+    private func loadROM(named: String) -> Data {
         let romURL = Bundle.main.url(forResource: named, withExtension: "gb")!
-        let data = try! Data(contentsOf: romURL)
-        var bytes = [UInt8](repeating: 0, count: data.count)
-        data.copyBytes(to: &bytes, count: data.count)
-        return bytes
+        return try! Data(contentsOf: romURL)
     }
 }

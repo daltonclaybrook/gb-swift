@@ -17,8 +17,7 @@ struct Flags: OptionSet {
 
 extension UInt16 {
     mutating func incr(by: UInt16 = 1) {
-        // convert to 32 bit, add 1, then mask to 16 bit
-        self = UInt16((UInt32(self) + UInt32(by)) & 0xFFFF)
+        self = self &+ by
     }
 }
 

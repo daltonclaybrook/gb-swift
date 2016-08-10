@@ -6,6 +6,8 @@
 //  Copyright © 2016 Claybrook Software. All rights reserved.
 //
 
+import Foundation
+
 protocol MMUProtocol {
     mutating func write(byte: UInt8, to address: UInt16)
     mutating func write(word: UInt16, to address: UInt16)
@@ -16,42 +18,33 @@ protocol MMUProtocol {
 
 struct MMU: MMUProtocol {
     
-    var inBios = true
-    private var bios: [UInt8]
-    private var rom: [UInt8]
-    private var wram = [UInt8](repeating: 0, count: 0x2000)
-    private var eram = [UInt8](repeating: 0, count: 0x2000)
-    private var zram = [UInt8](repeating: 0, count: 0x80)
+    private(set) var inBios = true
+    private let gpu: GPU
+    private var memory = Data(repeating: 0, count: 0x10000)
+    private var rom: Data
     
-    private(set) var vram = [UInt8](repeating: 0, count: 0x2000)
-    private(set) var oam = [UInt8](repeating: 0, count: 0xA0)
-    private(set) var memIO = [UInt8](repeating: 0, count: 0x80)
+    init(bios: Data, rom: Data, gpu: GPU) {
+        self.gpu = gpu
+        self.rom = MMU.trim(rom: rom, toLength: 0x8000)
+        let trimmedBios = MMU.trim(rom: bios, toLength: 0x100)
+        
+        memory[0..<0x8000] = self.rom[0..<0x8000]
+        memory[0..<0x100] = trimmedBios[0..<0x100]
+    }
     
-    init(bios: [UInt8], rom: [UInt8]) {
-        self.bios = bios
-        self.rom = rom
+    mutating func swapBios() {
+        guard inBios else { return }
+        inBios = false
+        memory[0..<0x100] = self.rom[0..<0x100]
     }
     
     //MARK: MMUProtocol
     
     mutating func write(byte: UInt8, to address: UInt16) {
-        switch address {
-        case 0x0000..<0x8000:   // ROM 0 / ROM 1
-            rom[Int(address)] = byte
-        case 0x8000..<0xA000:   // VRAM
-            vram[Int(address & 0x1FFF)] = byte
-        case 0xA000..<0xC000:   // Cartridge (External) RAM
-            eram[Int(address & 0x1FFF)] = byte
-        case 0xC000..<0xFE00:   // Working RAM & Shadow
-            wram[Int(address & 0x1FFF)] = byte
-        case 0xFE00..<0xFEA0:   // CPU Object Attribute Memory
-            oam[Int(address & 0xFF)] = byte
-        case 0xFF00..<0xFF80:   // Memory-mapped I/O
-            memIO[Int(address & 0x7F)] = byte
-        case 0xFF80...0xFFFF:   // Zero-page RAM
-            zram[Int(address & 0x7F)] = byte
-        default:
-            break
+        if (0xFF00..<0xFF80).contains(address) {
+            gpu.write(byte: byte, address: address)
+        } else {
+            memory[Int(address)] = byte
         }
     }
     
@@ -61,29 +54,10 @@ struct MMU: MMUProtocol {
     }
     
     func readByte(address: UInt16) -> UInt8 {
-        switch address {
-        case 0x0000..<0x1000:   // BIOS / ROM 0
-            if inBios && address < 0x100 {
-                return bios[Int(address)]
-            } else {
-                return rom[Int(address)]
-            }
-        case 0x1000..<0x8000:   // ROM 0 / ROM 1
-            return rom[Int(address)]
-        case 0x8000..<0xA000:   // VRAM
-            return vram[Int(address & 0x1FFF)]
-        case 0xA000..<0xC000:   // Cartridge (External) RAM
-            return eram[Int(address & 0x1FFF)]
-        case 0xC000..<0xFE00:   // Working RAM & Shadow
-            return wram[Int(address & 0x1FFF)]
-        case 0xFE00..<0xFEA0:   // CPU Object Attribute Memory
-            return oam[Int(address & 0xFF)]
-        case 0xFF00..<0xFF80:   // Memory-mapped I/O
-            return memIO[Int(address & 0x7F)]
-        case 0xFF80...0xFFFF:   // Zero-page RAM
-            return zram[Int(address & 0x7F)]
-        default:
-            return 0
+        if (0xFF00..<0xFF80).contains(address) {
+            return gpu.readByte(address: address)
+        } else {
+            return memory[Int(address)]
         }
     }
     
@@ -93,5 +67,17 @@ struct MMU: MMUProtocol {
     
     func requestInterrupt(_ interrupt: UInt8) {
         //no-op
+    }
+    
+    //MARK: Private
+    
+    static private func trim(rom: Data, toLength: Int) -> Data {
+        var trimmed = rom
+        if rom.count > toLength {
+            trimmed = Data(rom[0..<toLength])
+        } else if rom.count < toLength {
+            trimmed.append(contentsOf: (rom.count..<toLength).map({ _ in return 0 as UInt8 }))
+        }
+        return trimmed
     }
 }
