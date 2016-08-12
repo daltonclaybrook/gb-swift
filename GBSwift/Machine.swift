@@ -7,42 +7,74 @@
 //
 
 import Foundation
+import QuartzCore
 
-struct Machine {
+class Machine {
+    
+    var displayLink: CADisplayLink?
+    var gpu: GPU
+    var mmu: MMU
+    var cpu: CPU
+    
+    var firstTime: CFTimeInterval?
+    var timesFired: UInt = 0
+    
+    init(renderable: Renderable) {
+        gpu = GPU(renderable: renderable)
+        mmu = MMU(bios: Machine.loadBIOS(), rom: Machine.loadROM(), gpu: gpu)
+        cpu = CPU(mmu: mmu)
+    }
     
     func start() {
-        let gpu = GPU()
-        var mmu = MMU(bios: loadBIOS(), rom: loadROM(), gpu: gpu)
-        var cpu = CPU(mmu: mmu)
         
-        let startDate = Date()
+        displayLink = CADisplayLink(target: self, selector: #selector(Machine.displayLinkFired(link:)))
+        displayLink?.add(to: RunLoop.main, forMode: .defaultRunLoopMode)
         
-        while true {
-            if mmu.inBios && cpu.registers.pc == 0x100 {
+        //let startDate = Date()
+        
+        //while true {
+            
+        //}
+    }
+    
+    @objc func displayLinkFired(link: CADisplayLink) {
+        //print("time: \(link.timestamp - lastTime)")
+        if firstTime == nil {
+            firstTime = link.timestamp
+        }
+        timesFired += 1
+        
+        //var clock = 17477
+        var clock = 5000
+        //var clock = 200
+        
+        while clock >= 0 {
+            clock -= 1
+            if self.mmu.inBios && self.cpu.registers.pc == 0x100 {
                 
-                let interval = Date().timeIntervalSince(startDate)
-                let perSec = Int(Double(cpu.clock * 4) / interval)
-                print("per sec: \(perSec)")
+                //let interval = Date().timeIntervalSince(startDate)
+                //let perSec = Int(Double(cpu.clock * 4) / interval)
+                //print("per sec: \(perSec)")
                 
-                mmu.swapBios()
+                self.mmu.swapBios()
             }
-            cpu.exec(mmu: &mmu)
-            gpu.step(mmu: &mmu, clock: cpu.clock)
+            self.cpu.exec(mmu: &self.mmu)
+            self.gpu.step(mmu: &self.mmu, clock: self.cpu.clock)
         }
     }
     
     //MARK: Private
     
-    private func loadBIOS() -> Data {
+    private static func loadBIOS() -> Data {
         return loadROM(named: "bios")
     }
     
-    private func loadROM() -> Data {
+    private static func loadROM() -> Data {
         return loadROM(named: "pokemon")
         //return loadROM(named: "cpu_instrs")
     }
     
-    private func loadROM(named: String) -> Data {
+    private static func loadROM(named: String) -> Data {
         let romURL = Bundle.main.url(forResource: named, withExtension: "gb")!
         return try! Data(contentsOf: romURL)
     }
